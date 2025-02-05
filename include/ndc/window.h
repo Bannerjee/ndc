@@ -157,7 +157,9 @@ struct ndc_window
 #endif
 
 };
-
+#ifdef __cplusplus
+extern "C" {
+#endif
 ndc_window* ndc_create_window(const char* name,int width,int height);
 void ndc_destroy_window(ndc_window* win);
 
@@ -172,3 +174,7 @@ void ndc_set_key_callback(ndc_window* win,NDC_KEY_CALLBACK callback);
 void ndc_set_size_callback(ndc_window* win,NDC_SIZE_CALLBACK callback);
 void ndc_set_mouse_move_callback(ndc_window* win,NDC_MOUSE_MOVE_CALLBACK callback);
 void ndc_set_mouse_click_callback(ndc_window* win,NDC_MOUSE_CLICK_CALLBACK callback);
+
+#ifdef __cplusplus
+}
+#endif

@@ -385,6 +385,7 @@ ndc_window* ndc_create_window(const char* name,int width,int height)
     win->key_callback = NULL;
     win->size_callback = NULL;
     win->mouse_move_callback = NULL;
+    win->mouse_click_callback = NULL;
 
     memset(win->key_codes,NDC_KEY_UNKNOWN,sizeof(win->key_codes));
     win->key_codes[0x00B] = NDC_KEY_0;

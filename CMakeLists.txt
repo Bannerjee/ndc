@@ -6,12 +6,10 @@ set(CMAKE_C_STANDARD 17)
 find_package(Python COMPONENTS Interpreter REQUIRED)
 
 set(NDC_DEBUG ON)
-set(NDC_BUILD_EXAMPLE ON)
 
-add_custom_target(NDC_GENERATED_OUTPUT DEPENDS include/ndc/gl.h)
-if(NOT EXISTS "${CMAKE_HOME_DIRECTORY}/src/gl.c" OR NOT EXISTS "${CMAKE_HOME_DIRECTORY}/include/ndc/gl.h")
+if(NOT EXISTS "${PROJECT_SOURCE_DIR}/src/gl.c" OR NOT EXISTS "${PROJECT_SOURCE_DIR}/include/ndc/gl.h")
 	execute_process(
-		COMMAND ${Python_EXECUTABLE} scripts/gl_parser.py include/ndc/gl.h src/gl.c
+		COMMAND ${Python_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/gl_parser.py ${PROJECT_SOURCE_DIR}/include/ndc/gl.h ${PROJECT_SOURCE_DIR}/src/gl.c
 	)
 endif()
 
