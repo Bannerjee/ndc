@@ -1,6 +1,10 @@
 #pragma once
-#include <ndc/error.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include <ndc/error.h>
 #include <stdint.h>
 
 typedef struct 
@@ -13,8 +17,14 @@ typedef struct
 #endif
 } ndc_mapped_file;
 
+
 ndc_mapped_file* ndc_map_file(const char* filename);
 void ndc_unmap_file(ndc_mapped_file* f);
 
 uint8_t* ndc_read_file(const char* filename,size_t* s);
-uint8_t* ndc_read_bmp(const char* filename,int32_t* w,int32_t* h,uint16_t* bpp,ndc_error_t* t);  
+uint8_t* ndc_read_bmp(const char* filename,int32_t* w,int32_t* h,uint16_t* bpp,ndc_error_t* t); 
+
+#ifdef __cplusplus
+}
+#endif
+ 

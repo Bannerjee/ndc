@@ -1,17 +1,5 @@
 #pragma once
 
-#ifdef NDC_ROW_MAJOR
-
-#define NDC_SET_MATRIX(m,c,r,v) (m.data[r * m.cols + c] = v)
-#define NDC_GET_MATRIX(m,c,r) (m.data[r * m.cols + c])
-
-#else
-
-#define NDC_SET_MATRIX(m,c,r,v) (m.data[c * m.rows + r] = v)
-#define NDC_GET_MATRIX(m,c,r) (m.data[c * m.rows + r])
-
-#endif
-
 typedef struct 
 {
     float x;
@@ -36,6 +24,23 @@ typedef struct
     float y;
     float z;
 } ndc_vec3;
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#ifdef NDC_ROW_MAJOR
+
+#define NDC_SET_MATRIX(m,c,r,v) (m.data[r * m.cols + c] = v)
+#define NDC_GET_MATRIX(m,c,r) (m.data[r * m.cols + c])
+
+#else
+
+#define NDC_SET_MATRIX(m,c,r,v) (m.data[c * m.rows + r] = v)
+#define NDC_GET_MATRIX(m,c,r) (m.data[c * m.rows + r])
+
+#endif
 
 float ndc_to_radians(float degrees);
 
@@ -69,4 +74,6 @@ void ndc_div_v3_v3(ndc_vec3* v1,const ndc_vec3* v2);
 void ndc_add_v3_v3(ndc_vec3* v1,const ndc_vec3* v2);
 void ndc_sub_v3_v3(ndc_vec3* v1,const ndc_vec3* v2);
 
-
+#ifdef __cplusplus
+}
+#endif

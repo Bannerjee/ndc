@@ -1,6 +1,12 @@
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdint.h>
+
+
 typedef enum
 {
 	NDC_PRESS,
@@ -157,9 +163,8 @@ struct ndc_window
 #endif
 
 };
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+
 ndc_window* ndc_create_window(const char* name,int width,int height);
 void ndc_destroy_window(ndc_window* win);
 

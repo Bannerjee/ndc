@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+	
 #include <assert.h>
 
 typedef enum
@@ -26,6 +30,8 @@ typedef enum
 	NDC_INVALID_COLOR_TYPE_BPP_COMBO
 } ndc_error_t;
 
+
+
 void ndc_report(const char* msg,ndc_error_severity_t severity);
 const char* ndc_get_error_msg(ndc_error_t err);
 
@@ -40,13 +46,8 @@ const char* ndc_get_error_msg(ndc_error_t err);
 	#define NDC_CRITICAL(msg)
 	#define NDC_WARNING(msg)
 #endif
+#ifdef __cplusplus
+}
+#endif
 
 
-/*
-#ifndef NDC_ASSERT
-  #ifdef NDC_DEBUG
-    #define FWOG_ASSERT(x) assert(x)
-  #else
-    #define FWOG_ASSERT(x) (void)(x)
-  #endif
-#endif*/
