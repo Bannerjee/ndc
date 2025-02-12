@@ -1,34 +1,11 @@
-# kind of cursed opengl loader
-import requests as r
-import re
-import argparse
-import os
-
-# objdump -p demo.exe | grep "DLL Name\|Import Address Table" -A 20
-# objdump -p demo.exe | grep "DLL Name:"
-
-GLCOREARGB_H = "https://registry.khronos.org/OpenGL/api/GL/glcorearb.h"
-
-EXCLUDED_EXTENSIONS = [
-	"GL_ARB_sample_shading",
-	"GL_INTEL_performance_query",
-	"GL_INTEL_framebuffer_CMAA",
-	"GL_AMD_performance_monitor",
-	"GL_EXT_EGL_image_storage",
-	"GL_EXT_debug_marker",
-	"GL_EXT_shader_framebuffer_fetch_non_coherent",
-	"GL_MESA_framebuffer_flip_y",
-	"GL_AMD_framebuffer_multisample_advanced"
-]
-
-
+import os,subprocess,argparse,requests
 
 def download(url):
 	print(f'[NDC]Downloading {url}')
 
-	response = r.get(url)
+	response = requests.get(url)
 	if response.status_code != 200:
-		print("[NDC]Failed to fetch the OpenGL")
+		print(f"[NDC]Failed to fetch {url}")
 		exit(1)
 	return response.text
 
@@ -36,51 +13,118 @@ parser = argparse.ArgumentParser()
 parser.add_argument('header', type=str)
 parser.add_argument('source', type=str)
 args = parser.parse_args()
-
 if os.path.isfile(args.header) and os.path.isfile(args.source):
 	exit(0)
-#ndc/include/gl.h src/gl.c
-txt = download(GLCOREARGB_H)
 
-function_names = set(sorted(re.findall(r"GLAPI\s+(?:\w+\s+)+APIENTRY\s+(gl\w+)\s*\(",txt),key=len))
-filtered = re.sub(r"^GLAPI.*\n", "", txt, flags=re.MULTILINE)
+if not os.path.isfile("genreg.py"):
+	script = download("https://raw.githubusercontent.com/KhronosGroup/OpenGL-Registry/b53ca669bea4715b6d5fa53c459f47a1fecd7944/xml/reg.py")
+	script += f"\nHEADER_FILE = \"{args.header}\"\nSOURCE_FILE = \"{args.source}\"\n"
+	script += """
+def download(url):
+	print(f'[NDC]Downloading {url}')
 
-header = open(args.header, "w")
-header.write(filtered)
-for ext in EXCLUDED_EXTENSIONS:
-	start = filtered.find(f"#ifndef {ext}\n#define {ext} 1\n")
-	end = filtered.find(f"#endif /* {ext} */",0 if start == 0 else start)
-	fstart = start
-	while(True):
-		fstart = filtered.find("PFN",fstart,end);
-		if(fstart == -1):
-			break;
-		fend = filtered.find(' ',fstart,end)
-		ftype = filtered[fstart:fend-1].lstrip("PFN").rstrip("PROC")
+	response = r.get(url)
+	if response.status_code != 200:
+		print(f'[NDC]Failed to fetch {url}')
+		exit(1)
+	return response.text
 
-		function_names = {
-    		item for item in function_names if item.casefold() != ftype.casefold()
-		}
+def download_file(url,file):
+	with open(file,'w') as f:
+		f.write(download(url))
+if __name__ == '__main__':
+	import requests as r
+	import re
+	
+	regFilename = 'gl.xml'
+	diagFilename = 'diag.txt'
+	allVersions = '.*'
 
-		function_names.discard(filtered[fstart:fend-1])
-		fstart += fend - fstart
 
-	filtered = filtered[:start] + filtered[end + len(f"#endif /* {ext} */"):]
+	download_file('https://raw.githubusercontent.com/KhronosGroup/OpenGL-Registry/b53ca669bea4715b6d5fa53c459f47a1fecd7944/xml/gl.xml',regFilename)
+	diag = open(diagFilename,'w')
+	gen = COutputGenerator(diagFile = diag)
+	prefix =  [
+    '#if defined(_WIN32) && !defined(APIENTRY) && !defined(__CYGWIN__) && !defined(__SCITECH_SNAP__)',
+    '#ifndef WIN32_LEAN_AND_MEAN',
+    '#define WIN32_LEAN_AND_MEAN 1',
+    '#endif',
+    '#include <windows.h>',
+    '#endif',
+    '',
+    '#ifndef APIENTRY',
+    '#define APIENTRY',
+    '#endif',
+    '#ifndef APIENTRYP',
+    '#define APIENTRYP APIENTRY *',
+    '#endif',
+    '#ifndef GLAPI',
+    '#define GLAPI extern',
+    '#endif','']
 
-for func in function_names:
-	header.write(f"extern PFN{func.upper()}PROC {func};\n")
+	exclude_pattern = r"^(GL_(AMD|EXT|INTEL|MESA|KHR)_[a-zA-Z0-9_]+)$"
 
-header.write("\nvoid ndc_load_gl_functions(void*(loader)(const char*));")
-header.close()
 
-source = open(args.source, "w")
-source.write("#include <ndc/gl.h>\n\n")
+	build_target = CGeneratorOptions(
+	filename          = HEADER_FILE,
+	apiname           = 'gl',
+	profile           = 'core',
+	versions          = allVersions,
+	emitversions      = allVersions,
+	defaultExtensions = 'glcore',
+	addExtensions     = None,
+	removeExtensions  = exclude_pattern,
+	prefixText        = prefix,
+	genFuncPointers   = True,
+	protectFile       = True,
+	protectFeature    = True,
+	protectProto      = False,
+	protectProtoStr   = "",
+	apicall           = '//',
+	apientry          = 'APIENTRY ',
+	apientryp         = 'APIENTRYP ')
 
-for func in function_names:
-	source.write(f'PFN{func.upper()}PROC {func} = NULL;\n')
-source.write("void ndc_load_gl_functions(void*(loader)(const char*))\n{\n")
-for func in function_names:
-	source.write(f'\t{func} = (PFN{func.upper()}PROC)loader("{func}");\n')
-source.write("}\n")
-source.close()
+	reg = Registry()
+	tree = etree.parse(regFilename)
+	reg.loadElementTree(tree)
+	reg.setGenerator(gen)
+	reg.apiGen(build_target)
 
+	diag.close()
+
+	header_string = "" 
+
+
+
+	source_string = '#include <ndc/gl.h>\\n'
+	function_names = []
+	with open(HEADER_FILE,'r') as f:
+		header_string = re.sub(re.compile('//.*?\\n' ) ,'' ,f.read())
+		header_string = header_string[:header_string.rfind("#ifdef __cplusplus")]
+
+	with open(diagFilename,'r') as f:
+		function_names = re.findall(re.compile(r'Emitting command decl for (\w+)\\n' ), f.read())
+
+	for func in function_names:
+		header_string += f'extern PFN{func.upper()}PROC {func};\\n'
+		source_string += f'PFN{func.upper()}PROC {func} = NULL;\\n'
+
+	source_string += 'void ndc_load_gl_functions(void*(loader)(const char*))\\n{\\n'
+
+	for func in function_names:
+		source_string += f'\\t{func} = (PFN{func.upper()}PROC)loader(\"{func}\");\\n'
+
+	header_string += '\\nvoid ndc_load_gl_functions(void*(loader)(const char*));\\n#ifdef __cplusplus\\n}\\n#endif\\n#endif'
+
+	with open(HEADER_FILE,'w') as f:
+		f.write(header_string)
+
+	with open(SOURCE_FILE,'w') as f:
+		f.write(source_string + '\\n}')
+
+	os.remove(diagFilename)
+	os.remove(regFilename)
+	"""
+	with open("genreg.py","w") as f:
+		f.write(script)
+subprocess.run(["python", "genreg.py",args.header,args.source])

@@ -1,5 +1,5 @@
 # ndc
-Personal C library for 3d programming with zero dependencies
+Personal C library for 3d programming with zero dependencies<br>
 TODO:
  - [x] Basic window setup
  - [x] GL Context acquiring and function loading
